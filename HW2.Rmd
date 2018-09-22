@@ -1,6 +1,6 @@
 ---
 title: "HW2 STA521 Fall18"
-author: '[Your Name Here, netid and github username here]'
+author: 'Andrew Cooper, ahc15, andrewdjac'
 date: "Due September 23, 2018 5pm"
 output:
   pdf_document: default
@@ -24,24 +24,35 @@ This exercise involves the UN data set from `alr3` package. Install `alr3` and t
 
 0.  Preliminary read in the data.  After testing, modify the code chunk so that output, messages and warnings are suppressed.  *Exclude text from final*
 
-```{r data}
+```{r data, echo=F, message=F, warning=F}
 library(alr3)
 data(UN3, package="alr3")
 help(UN3) 
 library(car)
+library(knitr)
+library(ggplot2)
+library(GGally)
+library(gridExtra)
 ```
 
 
 1. Create a summary of the data.  How many variables have missing data?  Which are quantitative and which are qualtitative?
 
 ```{r}
-
+summary(UN3)
 ```
+
+As we can see in the summary, six of the variables in the UN3 dataset have missing data. In addition, all of the variables in the dataset are quantitative.
 
 2. What is the mean and standard deviation of each quantitative predictor?  Provide in a nicely formatted table.
 
-```{r}
+To get a better sense of the variables in the UN3 dataset, we create a table showing each variable's mean and standard deviation.
 
+```{r, message=F, warning=F}
+sum_tab <- apply(X=UN3,MARGIN=2,FUN=function(x){c(mean(x,na.rm=T),sd(x,na.rm=T))})
+sum_tab <- t(sum_tab)
+colnames(sum_tab) <- c("mean", "standard deviation")
+kable(sum_tab, caption="Means and standard deviations of variables in UN3")
 ```
 
 
@@ -49,39 +60,111 @@ library(car)
 highlighting the relationships among the predictors. Comment
 on your findings regarding trying to predict `ModernC` from the other variables.  Are there potential outliers, nonlinear relationships or transformations that appear to be needed based on your graphical EDA?
 
-```{r}
-
+```{r,message=F,warning=F}
+ggpairs(UN3,title="Pairwise relationships of variables in UN3")
 ```
+
+The ggpairs plot above gives us a lot of useful information regarding the predictors and their relationships. First, the diagonal plots showing each predictor's distribution reveals the variables "PPgdp", "Change", and "Fertility" are all heavily right-skewed. This is one indication that perhaps a log transformation might be appropriate for these variables. In particular, the plots for row "Pop" are all hard to decipher since most of the values are close to zero. This could perhaps be accounted for by logging "Pop" so that it's more normally-distributed. 
+
+Second, the pairs plot shows linear-looking relationships between "ModernC" and "Change", "ModernC" and "Frate", "PPgdp" and "Frate", "ModernC" and "Fertility", "Change" and "Fertility", "ModernC" and "Purban", "Frate" and "Purban", and "Fertility" and "Purban". In addition, see potentially non-linear relationships between "ModernC" and "PPgdp", "PPgdp" and "Fertility", and "PPgdp" and "Purban". These relationships look like log or perhaps square-root relationships.   
+
+To get a better look at the relationships between the predictors and our response "ModernC", we create individual scatterplots below.
+
+```{r,message=F,warning=F}
+p1 <- qplot(data=UN3,x=Change,y=ModernC)+labs(caption="Change vs. ModernC")
+p2 <- qplot(data=UN3,x=PPgdp,y=ModernC)+labs(caption="PPgdp vs. ModernC")
+p3 <- qplot(data=UN3,x=Frate,y=ModernC)+labs(caption="Frate vs. ModernC")
+p4 <- qplot(data=UN3,x=Pop,y=ModernC)+labs(caption="Pop vs. ModernC")
+p5 <- qplot(data=UN3,x=Fertility,y=ModernC)+labs(caption="Fertility vs. ModernC")
+p6 <- qplot(data=UN3,x=Purban,y=ModernC)+labs(caption="Purban vs. ModernC")
+grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 3)
+```
+
+"Change" appears to have a negative relationship with "ModernC", although it is difficult to tell if this relationship linear or perhaps non-linear due to the slight curve in the scatterplot.
+
+It is difficult to evaluate the relationship between "PPgdp" and "ModernC" since most of the values in "PPgdp" are clustered around zero. As stated earlier, "PPgdp" is heavily right-skewed, indicating a log-transformation might be appropriate. 
+
+"Frate" does not appear to have any apparent relationship with "ModernC". Perhaps there's a slightly positive relationship, but it is weak as best.
+
+
+It is difficult to evaluate the relationship between "Pop" and "ModernC" since most of the values in "Pop" are clustered around zero. As stated earlier, "Pop" is heavily right-skewed, indicating a log-transformation might be appropriate. In addition, there are two outliers on the right that are likely values of large leverage. However, those points might not be as much of outliers if a log transformation is performed on "Pop".
+
+"Fertility" has a rather strong negative relationship with "ModernC". It is difficult to tell if the relationship is strictly linear or has some slight curvature to it.
+
+Finally, "Purban" has a positive and linear-looking relationship with "ModernC".
 
 ## Model Fitting
 
 4.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?
 
 ```{r}
-
+par(mfrow=c(2,2))
+lm1 <- lm(ModernC~Change+PPgdp+Frate+Pop+Fertility+Purban,data=UN3)
+plot(lm1)
 ```
+
+The residuals appear to be approximately evenly distributed above and the below the line and showing no obvious pattern, indicating the linear fit is appropriate and the residuals are independent. There might be more variance in the center of the plot than the left and right sides, which could violate the equal variance condition, but for the most part the residuals look good. The qq-plot shows pretty normal-looking standardized residuals, satisfying the normality condition. There are some outliers of note. Azerbaijan, Poland, and the Cook Islands have particularly large residuals, indicating a lack of fit. In addition, Kuwait, India, and China have particularly large leverage. 
+
+```{r}
+length(lm1$residuals)
+```
+
+Printing the number of residuals in our model, we see the model fitting used 125 of our observations. Those are the number of "complete" cases in our UN3 dataset, i.e. all the observations with no missing entries. This means the lm() function automatically threw out all the incomplete cases before fitting the model.
 
 5. Examine added variable plots `car::avPlot` or `car::avPlots`  for your model above. Are there any plots that suggest that transformations are needed for any of the terms in the model? Describe. Is it likely that any of the localities are influential for any of the terms?  Which localities?  Which terms?  
 
-```{r}
-
+```{r,message=F,warning=F}
+car::avPlots(lm1,data=UN3)
 ```
+
+We observe outliers and potentially influential points in both the added variable plots for "PPgdp" and "Pop". These two plots suggest that perhaps a log transformation is needed for those terms. 
 
 6.  Using the Box-Tidwell  `car::boxTidwell` or graphical methods find appropriate transformations of the predictor variables to be used as predictors in the linear model.  If any predictors are negative, you may need to transform so that they are non-negative.  Describe your method and  the resulting transformations.
 
+We first decide to make "PPgdp" and "Pop" candidates for transformation in our boxTidwell() function, as reasoned by our analysis of the added variable plots.
 
 ```{r}
-
+boxTidwell(ModernC~PPgdp+Pop, ~ Change+Frate+Fertility+Purban, data=UN3)
 ```
+
+The non-signficant lambda values indicate the power transformations are not needed for these predictors.
+
+We found in previous analysis reasons to perhaps use the log-transformation on the predictors "PPgdp", "Pop", and "Fertility". So we now log-transform these predictors and see how their relationships with "ModernC" change.
+
+```{r, message=F, warning=F}
+p1 <- qplot(data=UN3,x=log(PPgdp),y=ModernC)+labs(caption="log(PPgdp) vs. ModernC")
+p2 <- qplot(data=UN3,x=log(Pop),y=ModernC)+labs(caption="log(Pop) vs. ModernC")
+p3 <- qplot(data=UN3,x=log(Fertility),y=ModernC)+labs(caption="log(Fertility) vs. ModernC")
+grid.arrange(p1, p2, p3, nrow = 2)
+```
+
+The scatter plots indicate that both predictors, particularly "PPgdp", benefit from a log transformation, as their relationships with "ModernC" now look more linear.
+
+We decide to only log-transform the predictors "PPgdp", "Pop", and "Fertility" in our model.
 
 7. Given the selected transformations of the predictors, select a transformation of the response using `MASS::boxcox` or `car::boxCox` and justify.
 
 
-```{r}
+```{r, message=F, warning=F}
+boxCox(lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban, data=UN3))
+```
+ 
+The confidence interval for Lambda produced by the boxCox() function include the value 1, indicating a transformation of the response might not be signficantly better than no transformation. We therefore decide a transformation of the response "ModernC" is not necessary. 
+ 
+8.  Fit the regression using the transformed variables.  Provide residual plots and added variables plots and comment.  If you feel that you need additional transformations of either the response or predictors, repeat any steps until you feel satisfied.
 
+```{r, message=F, warning=F}
+par(mfrow=c(2,2))
+lm2 <- lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban,data=UN3)
+plot(lm2)
 ```
 
-8.  Fit the regression using the transformed variables.  Provide residual plots and added variables plots and comment.  If you feel that you need additional transformations of either the response or predictors, repeat any steps until you feel satisfied.
+
+
+```{r}
+car::avPlots(lm2,data=UN3)
+```
+
 
 9. Start by finding the best transformation of the response and then find transformations of the predictors.  Do you end up with a different model than in 8?
 
@@ -119,6 +202,17 @@ on your findings regarding trying to predict `ModernC` from the other variables.
 
     
 13. Prove that the intercept in the added variable scatter plot will always be zero.  _Hint:  use the fact that if $H$ is the project matrix which contains a column of ones, then $1_n^T (I - H) = 0$.  Use this to show that the sample mean of residuals will always be zero if there is an intercept._
+
+The formula for the added variable regression line is 
+
+$$
+\hat{e_y} = \hat{\beta_0}+\hat{\beta_1}\hat{e_{x_i}}
+$$
+Where $\hat{e_y}$ are the residuals of the model regressing $Y$ against all the predictors except for $x_i$, and $\hat{e_{x_i}}$ are the residuals of the model regressing $x_i$ against all the predictors except for $x_i$. We can rewrite this as
+
+$$
+
+$$
 
 
 14. For multiple regression with more than 2 predictors, say a full model given by `Y ~ X1 + X2 + ... Xp`   we create the added variable plot for variable `j` by regressing `Y` on all of the `X`'s except `Xj` to form `e_Y` and then regressing `Xj` on all of the other X's to form `e_X`.  Confirm that the slope in a manually constructed added variable plot for one of the predictors  in Ex. 10 is the same as the estimate from your model. 
