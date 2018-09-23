@@ -22,8 +22,6 @@ This exercise involves the UN data set from `alr3` package. Install `alr3` and t
 
 ## Exploratory Data Analysis
 
-0.  Preliminary read in the data.  After testing, modify the code chunk so that output, messages and warnings are suppressed.  *Exclude text from final*
-
 ```{r data, echo=F, message=F, warning=F}
 library(alr3)
 data(UN3, package="alr3")
@@ -36,7 +34,7 @@ library(gridExtra)
 ```
 
 
-1. Create a summary of the data.  How many variables have missing data?  Which are quantitative and which are qualtitative?
+### Problem 1
 
 ```{r}
 summary(UN3)
@@ -44,7 +42,7 @@ summary(UN3)
 
 As we can see in the summary, six of the variables in the UN3 dataset have missing data. In addition, all of the variables in the dataset are quantitative.
 
-2. What is the mean and standard deviation of each quantitative predictor?  Provide in a nicely formatted table.
+### Problem 2
 
 To get a better sense of the variables in the UN3 dataset, we create a table showing each variable's mean and standard deviation.
 
@@ -56,9 +54,7 @@ kable(sum_tab, caption="Means and standard deviations of variables in UN3")
 ```
 
 
-3. Investigate the predictors graphically, using scatterplots or other tools of your choice. Create some plots
-highlighting the relationships among the predictors. Comment
-on your findings regarding trying to predict `ModernC` from the other variables.  Are there potential outliers, nonlinear relationships or transformations that appear to be needed based on your graphical EDA?
+### Problem 3
 
 ```{r,message=F,warning=F}
 ggpairs(UN3,title="Pairwise relationships of variables in UN3")
@@ -71,12 +67,12 @@ Second, the pairs plot shows linear-looking relationships between "ModernC" and 
 To get a better look at the relationships between the predictors and our response "ModernC", we create individual scatterplots below.
 
 ```{r,message=F,warning=F}
-p1 <- qplot(data=UN3,x=Change,y=ModernC)+labs(caption="Change vs. ModernC")
-p2 <- qplot(data=UN3,x=PPgdp,y=ModernC)+labs(caption="PPgdp vs. ModernC")
-p3 <- qplot(data=UN3,x=Frate,y=ModernC)+labs(caption="Frate vs. ModernC")
-p4 <- qplot(data=UN3,x=Pop,y=ModernC)+labs(caption="Pop vs. ModernC")
-p5 <- qplot(data=UN3,x=Fertility,y=ModernC)+labs(caption="Fertility vs. ModernC")
-p6 <- qplot(data=UN3,x=Purban,y=ModernC)+labs(caption="Purban vs. ModernC")
+p1 <- qplot(data=UN3,x=Change,y=ModernC)+labs(title="Change vs. ModernC")
+p2 <- qplot(data=UN3,x=PPgdp,y=ModernC)+labs(title="PPgdp vs. ModernC")
+p3 <- qplot(data=UN3,x=Frate,y=ModernC)+labs(title="Frate vs. ModernC")
+p4 <- qplot(data=UN3,x=Pop,y=ModernC)+labs(title="Pop vs. ModernC")
+p5 <- qplot(data=UN3,x=Fertility,y=ModernC)+labs(title="Fertility vs. ModernC")
+p6 <- qplot(data=UN3,x=Purban,y=ModernC)+labs(title="Purban vs. ModernC")
 grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 3)
 ```
 
@@ -95,7 +91,7 @@ Finally, "Purban" has a positive and linear-looking relationship with "ModernC".
 
 ## Model Fitting
 
-4.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?
+### Problem 4
 
 ```{r}
 par(mfrow=c(2,2))
@@ -111,15 +107,17 @@ length(lm1$residuals)
 
 Printing the number of residuals in our model, we see the model fitting used 125 of our observations. Those are the number of "complete" cases in our UN3 dataset, i.e. all the observations with no missing entries. This means the lm() function automatically threw out all the incomplete cases before fitting the model.
 
-5. Examine added variable plots `car::avPlot` or `car::avPlots`  for your model above. Are there any plots that suggest that transformations are needed for any of the terms in the model? Describe. Is it likely that any of the localities are influential for any of the terms?  Which localities?  Which terms?  
+### Problem 5 
 
 ```{r,message=F,warning=F}
 car::avPlots(lm1,data=UN3)
 ```
 
-We observe outliers and potentially influential points in both the added variable plots for "PPgdp" and "Pop". These two plots suggest that perhaps a log transformation is needed for those terms. 
+We observe outliers and potentially influential points in both the added variable plots for "PPgdp" and "Pop". In the "PPgdp" plot, the outliers are the countries Switzerland and Norway. In the "Pop" plot the outliers are China and India. These two plots suggest that perhaps a log transformation is needed for those terms. A log transformation might make these points less influential.
 
-6.  Using the Box-Tidwell  `car::boxTidwell` or graphical methods find appropriate transformations of the predictor variables to be used as predictors in the linear model.  If any predictors are negative, you may need to transform so that they are non-negative.  Describe your method and  the resulting transformations.
+The other plots look rather linear with no influential points.
+
+### Problem 6
 
 We first decide to make "PPgdp" and "Pop" candidates for transformation in our boxTidwell() function, as reasoned by our analysis of the added variable plots.
 
@@ -132,9 +130,9 @@ The non-signficant lambda values indicate the power transformations are not need
 We found in previous analysis reasons to perhaps use the log-transformation on the predictors "PPgdp", "Pop", and "Fertility". So we now log-transform these predictors and see how their relationships with "ModernC" change.
 
 ```{r, message=F, warning=F}
-p1 <- qplot(data=UN3,x=log(PPgdp),y=ModernC)+labs(caption="log(PPgdp) vs. ModernC")
-p2 <- qplot(data=UN3,x=log(Pop),y=ModernC)+labs(caption="log(Pop) vs. ModernC")
-p3 <- qplot(data=UN3,x=log(Fertility),y=ModernC)+labs(caption="log(Fertility) vs. ModernC")
+p1 <- qplot(data=UN3,x=log(PPgdp),y=ModernC)+labs(title="log(PPgdp) vs. ModernC")
+p2 <- qplot(data=UN3,x=log(Pop),y=ModernC)+labs(title="log(Pop) vs. ModernC")
+p3 <- qplot(data=UN3,x=log(Fertility),y=ModernC)+labs(title="log(Fertility) vs. ModernC")
 grid.arrange(p1, p2, p3, nrow = 2)
 ```
 
@@ -142,7 +140,7 @@ The scatter plots indicate that both predictors, particularly "PPgdp", benefit f
 
 We decide to only log-transform the predictors "PPgdp", "Pop", and "Fertility" in our model.
 
-7. Given the selected transformations of the predictors, select a transformation of the response using `MASS::boxcox` or `car::boxCox` and justify.
+### Problem 7
 
 
 ```{r, message=F, warning=F}
@@ -151,23 +149,38 @@ boxCox(lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban, data=U
  
 The confidence interval for Lambda produced by the boxCox() function include the value 1, indicating a transformation of the response might not be signficantly better than no transformation. We therefore decide a transformation of the response "ModernC" is not necessary. 
  
-8.  Fit the regression using the transformed variables.  Provide residual plots and added variables plots and comment.  If you feel that you need additional transformations of either the response or predictors, repeat any steps until you feel satisfied.
+### Problem 8
 
 ```{r, message=F, warning=F}
 par(mfrow=c(2,2))
 lm2 <- lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban,data=UN3)
-plot(lm2)
+summary(lm2)
 ```
+
+The coefficients for "Change" and "Purban" are not signficant according to the summary, indicating they don't provide enough information in predicting "ModernC". We remove these predictors and refit the model.
+
+```{r, message=F, warning-F}
+lm3 <- lm(ModernC~log(PPgdp)+Frate+log(Pop)+log(Fertility),data=UN3)
+summary(lm3)
+```
+
+Now all the predictors are significant and the R-squared value is about the same, so we choose this as the final model.
+
+```{r, message=F, warning=F}
+par(mfrow=c(2,2))
+plot(lm3)
+```
+
 
 The residuals appear randomly and evenly distributed above and below the fitted line, indicating a linear relationship is appropriate and that the residuals are indendent. The qq-plot also has small tails indicating normally distributed standardized residuals. 
 
 ```{r, message=F, warning=F}
-car::avPlots(lm2,data=UN3)
+car::avPlots(lm3,data=UN3)
 ```
 
 All the added variable plots look linear with no significant outliers or influential points.
 
-9. Start by finding the best transformation of the response and then find transformations of the predictors.  Do you end up with a different model than in 8?
+### Problem 9
 
 We first use the boxcox() function to find the optimal response transformation.
 
@@ -183,57 +196,75 @@ We then run the boxTidwell() function to decide which predictors to transform.
 boxTidwell(ModernC~PPgdp+Pop+Change+100+Frate+Fertility+Purban, data=UN3)
 ```
 
+The code in the above chunk failed to diverge and returned an error. This seems to be due to a bug in the boxTidwell package function. For this reason, we decide the appropriate transformations of the predictors from graphical analysis.
 
-10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.
+As we showed in previous analysis, the predictors "PPgdp", "Pop", and "Fertility" are heavily right-skewed, non-negative variables. Their relationships with the response "ModernC" is hard to evaluate given how all the values are clustered around zero, so a log transformation seems appropriate. Taking the log of these predictors yields more normal-looking distributions and more linear-looking relationships with "ModernC".
 
-Looking at the residual diagnostic plots for the final model, it appears the Cook Islands, China, and Armenia are outliers in the data. We remove these from the data and refit the model.
+After log-transforming "PPgdp", "Pop", and "Fertility", we get the final model
 
-```{r}
-UN3_new <- UN3[!(rownames(UN3) %in% c("Cook.Islands","China","Armenia")),]
-lm3 <- lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban,data=UN3_new)
+$$
+E[ModernC|X] = \beta_0 + \beta_1Change + \beta_2log(PPgdp) + \beta_3Frate + \beta_4log(Pop) + \beta_5log(Fertility) + \beta_6Purban
+$$
+This happens to be the same model we constructed in problem 8.
+
+
+### Problem 10
+
+Looking at the residual diagnostic plots for the final model, it appears the Cook Islands, China, Armenia, Nicaragua, and Poland are outliers in the data. We remove these from the data and refit the model.
+
+```{r, message=F, warning=F}
+UN3_new <- UN3[!(rownames(UN3) %in% c("Cook.Islands","China","Armenia", "Nicaragua", "Poland")),]
+lm4 <- lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban,data=UN3_new)
 par(mfrow=c(2,2))
-plot(lm3)
+plot(lm4)
 ```
+
+Looking at the residual plots, there are new outliers but they have little leverage. However, the points we removed were not egregious outliers such that they were unfit for our model. None of the removed points were within Cook's distance, so we decide to put the points back in.
 
 ## Summary of Results
 
-11. For your final model, provide summaries of coefficients with 95% confidence intervals in a nice table with interpretations of each coefficient.  These should be in terms of the original units! 
+### Problem 11
 
 
 ```{r}
-int_tab <- as.data.frame(confint(lm2))
-int_tab$Coefficient <- lm2$coefficients
-rownames(int_tab) <- c("Intercept","Change","PPgdp","Frate","Pop","Fertility","Purban")
-int_tab[c("PPgdp","Pop","Fertility"),] <- 10^int_tab[c("PPgdp","Pop","Fertility"),]
+int_tab <- as.data.frame(confint(lm3))
+int_tab$Coefficient <- lm3$coefficients
+rownames(int_tab) <- c("Intercept","PPgdp","Frate","Pop","Fertility")
 kable(int_tab, caption="Coefficient estimates and confidence intervals for final model")
 ```
 
-Intercept: When all predictors are zero, we expect a percent of unmarried women using modern contraception of -15. This coefficient is clearly doesn't make sense in the context of the problem.
+Intercept: When all predictors are zero, the expected percent of unmarried women using modern contraception is -19.47%. This coefficient is clearly doesn't make sense in the context of the problem.
 
-Change: For every percent increase in annual population growth, the expected percentage of unmarried women using modern contraception increases by 2.31%.
+PPgdp: When the 2001 GDP increases by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 6.63%.
 
-PPgdp: When the 2001 GDP increases by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 2,790,000%.
+Frate: For every percent increase in females over 15 who are economically active, the expected percentage of unmarried women using modern contraception increases by 0.16%.
 
-Frate: For every percent increase in females over 15 who are economically active, the expected percentage of unmarried women using modern contraception increases by 0.18%.
+Pop: When the population increase by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 1.77%
 
-Pop: When the population increase by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 4.93%
-
-Fertility: When the fertility rate increases by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 
-
-Purban: For every percent increase in urban population in 2001, the expected percentage of unmarried women using modern contraception decreases by .007%.
-
-12. Provide a paragraph summarizing your final model  and findings suitable for the US envoy to the UN after adjusting for outliers or influential points.   You should provide a justification for any case deletions in your final model
+Fertility: When the fertility rate increases by a factor of 10, the expected percentage of unmarried women using modern contraception decreases by 13.62%.
 
 
-```{r}
+### Problem 12
 
-```
 
+Our final model is
+
+$$
+\hat{ModernC} = -19.47 + 6.63og(PPgdp) + 0.16(Frate) + 1.77log(Pop) - 13.62log(Fertility) 
+$$
+
+The model gives us insight into the relationships between general features of the female UN population and the use of modern methods of contraception. The coefficient for "PPgdp" implies as a country's GDP increases, so does its percentage of women using modern contraception. This could be because countries with higher GDP's tend to also be more developed both socially and technologically. In these countries, modern contraception might be more available or standard than less developed countries with lower GDP's.
+
+The coefficient for "Frate" indicates that as more women become economically active, more women use modern contraception. This makes sense as well, as countries with more economically active women typically have more rights for women and are more socially progressive, which would lead to more women using modern contraception. On the other hand, countries with less economically active women tend to have fewer women's rights, so using modern contraception might be stigmatized or even illegal.  
+
+The coefficient for "Pop" implies that as the population increases, so does the percentage of women using modern contraception. This could be because countries with higher populations are typically more developed and technologically advanced, and therefore are more likely introduced to modern methods of contraception. 
+
+Finally, the coefficient for Fertility implies that as fertility rates increase, the percentage of women using modern contraception decreases. This makes sense, as fertility rate and use of contraception are directly related. Countries with higher fertility rates have more expected children per female, indicating women in that country tend to use fewer methods of contraceptives. Likewise, countries with lower fertility rates likely have women who often use contraceptives to avoid pregnancy.
 
 ## Methodology
 
     
-13. Prove that the intercept in the added variable scatter plot will always be zero.  _Hint:  use the fact that if $H$ is the project matrix which contains a column of ones, then $1_n^T (I - H) = 0$.  Use this to show that the sample mean of residuals will always be zero if there is an intercept._
+### Problem 13
 
 The formula for the added variable regression line is 
 
@@ -247,26 +278,21 @@ $$
 $$
 Where $1_{nx1}$ is a vector of 1's. We then substitute for $\hat{\beta_1}$ the formula for the OLS estimate:
 
-$$
-(I-H)Y = \hat{\beta_0}1_{nx1} + [((I-H)x_i)^T((I-H)x_i)]^{-1}((I-H)x_i)^T(I-H)Y(I-H)x_i \\
-(I-H)Y = \hat{\beta_0}1_{nx1} + [x_i^T(I-H)^T(I-H)x_i]^{-1}x_i^T(I-H)^T(I-H)Y(I-H)x_i \\
-(I-H)Y = \hat{\beta_0}1_{nx1} + [x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y(I-H)x_i
-$$
+$$(I-H)Y = \hat{\beta_0}1_{nx1} + [((I-H)x_i)^T((I-H)x_i)]^{-1}((I-H)x_i)^T(I-H)Y(I-H)x_i$$
+$$(I-H)Y = \hat{\beta_0}1_{nx1} + [x_i^T(I-H)^T(I-H)x_i]^{-1}x_i^T(I-H)^T(I-H)Y(I-H)x_i $$
+$$(I-H)Y = \hat{\beta_0}1_{nx1} + [x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y(I-H)x_i$$
+
 We then multiply each side by $x_i^T$ to simplify the expression
 
-$$
-x_i^T(I-H)Y = x_i^T\hat{\beta_0}1_{nx1} + x_i^T[x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y(I-H)x_i \\
-x_i^T(I-H)Y = \hat{\beta_0}\sum{x_i}+x_i^T(I-H)x_i[x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y 
-$$
+$$x_i^T(I-H)Y = x_i^T\hat{\beta_0}1_{nx1} + x_i^T[x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y(I-H)x_i $$
+$$x_i^T(I-H)Y = \hat{\beta_0}\sum{x_i}+x_i^T(I-H)x_i[x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y $$
 We see a term and its inverse multiplied together on the right-hand side, which can be simplified to get
 
-$$
-x_i^T(I-H)Y = \hat{\beta_0}\sum{x_i}+x_i^T(I-H)Y \\
-\hat{\beta_0}\sum{x_i} = 0 \\
-\hat{\beta_0} = 0
-$$
+$$x_i^T(I-H)Y = \hat{\beta_0}\sum{x_i}+x_i^T(I-H)Y $$
+$$\hat{\beta_0}\sum{x_i} = 0 $$
+$$\hat{\beta_0} = 0$$
 
-14. For multiple regression with more than 2 predictors, say a full model given by `Y ~ X1 + X2 + ... Xp`   we create the added variable plot for variable `j` by regressing `Y` on all of the `X`'s except `Xj` to form `e_Y` and then regressing `Xj` on all of the other X's to form `e_X`.  Confirm that the slope in a manually constructed added variable plot for one of the predictors  in Ex. 10 is the same as the estimate from your model. 
+### Problem 14
 
 We show that the estimate for the coefficient for "Purban" is the same using both methods.
 
@@ -288,4 +314,4 @@ lm6 <- lm(e_Y ~ e_X)
 lm6$coefficients[2]
 ```
 
-As we can see, the two estimates for the coefficient for "Purban" are the same.
+As we can see, the two estimates for the coefficient for "Purban" are the same ($\approx-.00735$).
