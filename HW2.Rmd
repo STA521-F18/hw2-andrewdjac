@@ -159,25 +159,40 @@ lm2 <- lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban,data=UN
 plot(lm2)
 ```
 
+The residuals appear randomly and evenly distributed above and below the fitted line, indicating a linear relationship is appropriate and that the residuals are indendent. The qq-plot also has small tails indicating normally distributed standardized residuals. 
 
-
-```{r}
+```{r, message=F, warning=F}
 car::avPlots(lm2,data=UN3)
 ```
 
+All the added variable plots look linear with no significant outliers or influential points.
 
 9. Start by finding the best transformation of the response and then find transformations of the predictors.  Do you end up with a different model than in 8?
 
+We first use the boxcox() function to find the optimal response transformation.
 
-```{r}
-
+```{r, message=F, warning=F}
+boxCox(lm(ModernC~Change+PPgdp+Frate+Pop+Fertility+Purban, data=UN3))
 ```
+
+Based on the confidence interval for lambda, which includes the value 1, we decide to not use a transformation on the response.
+
+We then run the boxTidwell() function to decide which predictors to transform.
+
+```{r, message=F, warning=F, eval=F}
+boxTidwell(ModernC~PPgdp+Pop+Change+100+Frate+Fertility+Purban, data=UN3)
+```
+
 
 10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.
 
+Looking at the residual diagnostic plots for the final model, it appears the Cook Islands, China, and Armenia are outliers in the data. We remove these from the data and refit the model.
 
 ```{r}
-
+UN3_new <- UN3[!(rownames(UN3) %in% c("Cook.Islands","China","Armenia")),]
+lm3 <- lm(ModernC~Change+log(PPgdp)+Frate+log(Pop)+log(Fertility)+Purban,data=UN3_new)
+par(mfrow=c(2,2))
+plot(lm3)
 ```
 
 ## Summary of Results
@@ -186,9 +201,26 @@ car::avPlots(lm2,data=UN3)
 
 
 ```{r}
-
+int_tab <- as.data.frame(confint(lm2))
+int_tab$Coefficient <- lm2$coefficients
+rownames(int_tab) <- c("Intercept","Change","PPgdp","Frate","Pop","Fertility","Purban")
+int_tab[c("PPgdp","Pop","Fertility"),] <- 10^int_tab[c("PPgdp","Pop","Fertility"),]
+kable(int_tab, caption="Coefficient estimates and confidence intervals for final model")
 ```
 
+Intercept: When all predictors are zero, we expect a percent of unmarried women using modern contraception of -15. This coefficient is clearly doesn't make sense in the context of the problem.
+
+Change: For every percent increase in annual population growth, the expected percentage of unmarried women using modern contraception increases by 2.31%.
+
+PPgdp: When the 2001 GDP increases by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 2,790,000%.
+
+Frate: For every percent increase in females over 15 who are economically active, the expected percentage of unmarried women using modern contraception increases by 0.18%.
+
+Pop: When the population increase by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 4.93%
+
+Fertility: When the fertility rate increases by a factor of 10, the expected percentage of unmarried women using modern contraception increases by 
+
+Purban: For every percent increase in urban population in 2001, the expected percentage of unmarried women using modern contraception decreases by .007%.
 
 12. Provide a paragraph summarizing your final model  and findings suitable for the US envoy to the UN after adjusting for outliers or influential points.   You should provide a justification for any case deletions in your final model
 
@@ -211,8 +243,49 @@ $$
 Where $\hat{e_y}$ are the residuals of the model regressing $Y$ against all the predictors except for $x_i$, and $\hat{e_{x_i}}$ are the residuals of the model regressing $x_i$ against all the predictors except for $x_i$. We can rewrite this as
 
 $$
+(I-H)Y = \hat{\beta_0}1_{nx1}+\hat{\beta_1}(I-H)x_3
+$$
+Where $1_{nx1}$ is a vector of 1's. We then substitute for $\hat{\beta_1}$ the formula for the OLS estimate:
 
 $$
+(I-H)Y = \hat{\beta_0}1_{nx1} + [((I-H)x_i)^T((I-H)x_i)]^{-1}((I-H)x_i)^T(I-H)Y(I-H)x_i \\
+(I-H)Y = \hat{\beta_0}1_{nx1} + [x_i^T(I-H)^T(I-H)x_i]^{-1}x_i^T(I-H)^T(I-H)Y(I-H)x_i \\
+(I-H)Y = \hat{\beta_0}1_{nx1} + [x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y(I-H)x_i
+$$
+We then multiply each side by $x_i^T$ to simplify the expression
 
+$$
+x_i^T(I-H)Y = x_i^T\hat{\beta_0}1_{nx1} + x_i^T[x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y(I-H)x_i \\
+x_i^T(I-H)Y = \hat{\beta_0}\sum{x_i}+x_i^T(I-H)x_i[x_i^T(I-H)x_i]^{-1}x_i^T(I-H)Y 
+$$
+We see a term and its inverse multiplied together on the right-hand side, which can be simplified to get
+
+$$
+x_i^T(I-H)Y = \hat{\beta_0}\sum{x_i}+x_i^T(I-H)Y \\
+\hat{\beta_0}\sum{x_i} = 0 \\
+\hat{\beta_0} = 0
+$$
 
 14. For multiple regression with more than 2 predictors, say a full model given by `Y ~ X1 + X2 + ... Xp`   we create the added variable plot for variable `j` by regressing `Y` on all of the `X`'s except `Xj` to form `e_Y` and then regressing `Xj` on all of the other X's to form `e_X`.  Confirm that the slope in a manually constructed added variable plot for one of the predictors  in Ex. 10 is the same as the estimate from your model. 
+
+We show that the estimate for the coefficient for "Purban" is the same using both methods.
+
+First, we get the coefficient estimate from the full model we created earlier.
+
+```{r, message=F, warning=F}
+lm2$coefficients[7]
+```
+
+Then we construct two new models. The first model takes our full model and takes out "Purban" as a predictor. The second model takes that model and replaces the response with "Purban". The residuals of the first model ($e_Y$) are regressed against the residuals of the second model ($e_X$):
+
+```{r, message=F, warning=F}
+UN3_complete <- UN3[complete.cases(UN3),]
+lm4 <- lm(ModernC ~ Change + log(PPgdp) + Frate + log(Pop) + log(Fertility), data=UN3_complete)
+lm5 <- lm(Purban ~ Change + log(PPgdp) + Frate + log(Pop) + log(Fertility), data=UN3_complete)
+e_Y <- lm4$residuals
+e_X <- lm5$residuals
+lm6 <- lm(e_Y ~ e_X)
+lm6$coefficients[2]
+```
+
+As we can see, the two estimates for the coefficient for "Purban" are the same.
